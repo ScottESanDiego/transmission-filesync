@@ -22,6 +22,7 @@ func main() {
 	flag.StringVar(&username, "username", "", "Username for Transmission-RPC")
 	flag.StringVar(&password, "password", "", "Password for Transmission-RPC")
 	flag.StringVar(&filedir, "directory", "/var/torrents/", "Directory in the filesystem where the torrents live with trailing slash")
+	dryrun := flag.Bool("dryrun", false, "Don't actually delete files, just print what would happen")
 	flag.Parse()
 
 	// Create a new Transmission RPC client
@@ -63,18 +64,23 @@ func main() {
 	for _, file := range files {
 		_, found := slices.BinarySearch(torrentnames, file.Name())
 		if !found {
-			fmt.Printf("Unowned file: %s\n", filedir+file.Name())
-
 			// Super-duper extra check that file.Name() isn't null since os.RemoveAll will remove filedir otherwise!
 			if len(file.Name()) > 0 {
-				err := os.RemoveAll(filedir+file.Name())
-				if err != nil {
-					fmt.Println(err)
-					return
-				}
+				if *dryrun == true {
+					fmt.Printf("Dry-run, not deleting: ")
+				} else {
+					fmt.Printf("Deleting unowned file: ")
+					err := os.RemoveAll(filedir+file.Name())
+					if err != nil {
+						fmt.Println(err)
+						return
+					}
+			}
 			} else {
 				fmt.Println("ERROR: Filename was empty!")
 			}
+
+			fmt.Printf("%s\n", filedir+file.Name())
 		}
 	}
 }
